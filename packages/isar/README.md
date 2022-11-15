@@ -60,71 +60,77 @@ If you want to say thank you, star us on GitHub and like us on pub.dev 🙌💙
 
 Holy smokes you're here! Let's get started on using the coolest Flutter database out there...
 
-### 1. Add to pubspec.yaml
+1. Install Rust and run cargo build --release in the project root
 
-```yaml
-isar_version: &isar_version 3.0.2 # define the version to be used
+2. Add to pubspec.yaml
 
-dependencies:
-  isar: *isar_version
-  isar_flutter_libs: *isar_version # contains Isar Core
+    ```yaml
+    isar_version: &isar_version 3.0.2 # define the version to be used
+    
+    dependencies:
+      isar: *isar_version
+      isar_flutter_libs: *isar_version # contains Isar Core
+    
+    dev_dependencies:
+      isar_generator: *isar_version
+      build_runner: any
+    ```
 
-dev_dependencies:
-  isar_generator: *isar_version
-  build_runner: any
-```
+3. Annotate a Collection
 
-### 2. Annotate a Collection
+    ```dart
+    import 'package:isar/isar.dart';
+    
+    part 'email.g.dart';
+    
+    @collection
+    class Email {
+      Id id = Isar.autoIncrement; // you can also use id = null to auto increment
+    
+      @Index(type: IndexType.value)
+      String? title;
+    
+      List<Recipient>? recipients;
+    
+      @enumerated
+      Status status = Status.pending;
+    }
 
-```dart
-part 'email.g.dart';
+    @embedded
+    class Recipient {
+      String? name;
+    
+      String? address;
+    }
+    
+    enum Status {
+      draft,
+      pending,
+      sent,
+    }
+    ```
 
-@collection
-class Email {
-  Id id = Isar.autoIncrement; // you can also use id = null to auto increment
+4. Open a database instance
 
-  @Index(type: IndexType.value)
-  String? title;
+    ```dart
+    final isar = await Isar.open([UserSchema]);
+    ```
 
-  List<Recipient>? recipients;
+5. Query the database
 
-  @enumerated
-  Status status = Status.pending;
-}
-
-@embedded
-class Recipient {
-  String? name;
-
-  String? address;
-}
-
-enum Status {
-  draft,
-  pending,
-  sent,
-}
-```
-
-### 3. Open a database instance
-
-```dart
-final isar = await Isar.open([EmailSchema]);
-```
-
-### 4. Query the database
-
-```dart
-final emails = await isar.emails.filter()
-  .titleContains('awesome', caseSensitive: false)
-  .sortByStatusDesc()
-  .limit(10)
-  .findAll();
-```
+    ```dart
+    final emails = await isar.emails.filter()
+      .titleContains('awesome', caseSensitive: false)
+      .sortByStatusDesc()
+      .limit(10)
+      .findAll();
+    ```
 
 ## Isar Database Inspector
 
-The [Isar Inspector](https://github.com/isar/isar/releases/latest) allows you to inspect the Isar instances & collections of your app in real-time. You can execute queries, edit properties, switch between instances and sort the data.
+The [Isar Inspector](https://github.com/isar/isar/releases/latest) allows you to inspect the Isar instances &
+collections of your app in real-time. You can execute queries, edit properties, switch between instances and sort the
+data.
 
 <img src="https://raw.githubusercontent.com/isar/isar/main/.github/assets/inspector.gif">
 
@@ -133,68 +139,82 @@ The [Isar Inspector](https://github.com/isar/isar/releases/latest) allows you to
 All basic crud operations are available via the `IsarCollection`.
 
 ```dart
-final newEmail = Email()..title = 'Amazing new database';
 
-await isar.writeTxn(() {
-  await isar.emails.put(newEmail); // insert & update
+final newEmail = Email()
+  ..title = 'Amazing new database';
+
+await
+isar.writeTxn(() {
+await isar.emails.put(newEmail); // insert & update
 });
 
-final existingEmail = await isar.emails.get(newEmail.id!); // get
+final existingEmail = await
+isar.emails.get(newEmail.id!); // get
 
-await isar.writeTxn(() {
-  await isar.emails.delete(existingEmail.id!); // delete
+await
+isar.writeTxn(() {
+await isar.emails.delete(existingEmail.id!); // delete
 });
 ```
 
 ## Database Queries
 
-Isar database has a powerful query language that allows you to make use of your indexes, filter distinct objects, use complex `and()`, `or()` and `.xor()` groups, query links and sort the results.
+Isar database has a powerful query language that allows you to make use of your indexes, filter distinct objects, use
+complex `and()`, `or()` and `.xor()` groups, query links and sort the results.
 
 ```dart
+
 final importantEmails = isar.emails
-  .where()
-  .titleStartsWith('Important') // use index
-  .limit(10)
-  .findAll()
+    .where()
+    .titleStartsWith('Important') // use index
+    .limit(10)
+    .findAll()
 
 final specificEmails = isar.emails
-  .filter()
-  .recipient((q) => q.nameEqualTo('David')) // query embedded objects
-  .or()
-  .titleMatches('*university*', caseSensitive: false) // title containing 'university' (case insensitive)
-  .findAll()
+    .filter()
+    .recipient((q) => q.nameEqualTo('David')) // query embedded objects
+    .or()
+    .titleMatches('*university*', caseSensitive: false) // title containing 'university' (case insensitive)
+    .findAll()
 ```
 
 ## Database Watchers
 
-With Isar database, you can watch collections, objects, or queries. A watcher is notified after a transaction commits successfully and the target actually changes.
+With Isar database, you can watch collections, objects, or queries. A watcher is notified after a transaction commits
+successfully and the target actually changes.
 Watchers can be lazy and not reload the data or they can be non-lazy and fetch new results in the background.
 
 ```dart
+
 Stream<void> collectionStream = isar.emails.watchLazy();
 
 Stream<List<Post>> queryStream = importantEmails.watch();
 
-queryStream.listen((newResult) {
-  // do UI updates
+queryStream.listen((
+newResult) {
+// do UI updates
 })
 ```
 
 ## Benchmarks
 
-Benchmarks only give a rough idea of the performance of a database but as you can see, Isar NoSQL database is quite fast 😇
+Benchmarks only give a rough idea of the performance of a database but as you can see, Isar NoSQL database is quite fast
+😇
 
 | <img src="https://raw.githubusercontent.com/isar/isar/main/.github/assets/benchmarks/insert.png" width="100%" /> | <img src="https://raw.githubusercontent.com/isar/isar/main/.github/assets/benchmarks/query.png" width="100%" /> |
 | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | <img src="https://raw.githubusercontent.com/isar/isar/main/.github/assets/benchmarks/delete.png" width="100%" /> | <img src="https://raw.githubusercontent.com/isar/isar/main/.github/assets/benchmarks/size.png" width="100%" />  |
 
-If you are interested in more benchmarks or want to check how Isar performs on your device you can run the [benchmarks](https://github.com/isar/isar_benchmark) yourself.
+If you are interested in more benchmarks or want to check how Isar performs on your device you can run
+the [benchmarks](https://github.com/isar/isar_benchmark) yourself.
 
 ## Unit tests
 
-If you want to use Isar database in unit tests or Dart code, call `await Isar.initializeIsarCore(download: true)` before using Isar in your tests.
+If you want to use Isar database in unit tests or Dart code, call `await Isar.initializeIsarCore(download: true)` before
+using Isar in your tests.
 
-Isar NoSQL database will automatically download the correct binary for your platform. You can also pass a `libraries` map to adjust the download location for each platform.
+Isar NoSQL database will automatically download the correct binary for your platform. You can also pass a `libraries`
+map to adjust the download location for each platform.
 
 Make sure to use `flutter test -j 1` to avoid tests running in parallel. This would break the automatic download.
 
@@ -239,7 +259,8 @@ Big thanks go to these wonderful people:
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
-This database project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind are welcome!
+This database project follows the [all-contributors](https://github.com/all-contributors/all-contributors)
+specification. Contributions of any kind are welcome!
 
 ### License
 
